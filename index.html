@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Visual de Ecuaciones</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; color: #333; margin: 0; padding: 20px; }
+        h1 { color: #1976d2; text-align: center; margin-bottom: 5px; }
+        .subtitle { text-align: center; color: #555; margin-bottom: 20px; font-weight: bold; }
+        
+        .layout { display: flex; gap: 20px; max-width: 98%; margin: 0 auto; flex-wrap: wrap; }
+        
+        .main-panel { flex: 3; min-width: 650px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .side-panel { flex: 2; min-width: 450px; display: flex; flex-direction: column; gap: 20px; max-height: 85vh; }
+        
+        /* Menú y Ranking */
+        #menuScreen { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; }
+        
+        .name-input-container { margin: 20px auto; padding: 20px; background: #e3f2fd; border-radius: 12px; border: 2px dashed #64b5f6; display: inline-block; }
+        #playerNameInput { padding: 12px; font-size: 20px; border-radius: 8px; border: 2px solid #ccc; width: 280px; text-align: center; font-weight: bold; }
+        #nameError { color: #d32f2f; font-size: 14px; margin-top: 8px; font-weight: bold; display: none; }
+        
+        button { font-family: inherit; border: none; padding: 12px 24px; margin: 8px; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-menu { background-color: #bbdefb; color: #0d47a1; width: 80%; max-width: 400px; }
+        .btn-menu:hover { background-color: #90caf9; transform: translateY(-2px); }
+        .btn-reto { background-color: #ff9800; color: white; width: 80%; max-width: 400px; }
+        .btn-reto:hover { background-color: #f57c00; transform: translateY(-2px); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-end-early { background: #d32f2f; color: white; border-radius: 20px; box-shadow: 0 4px 0 #b71c1c; width: 100%; max-width: 300px; display: block; margin: 25px auto 0 auto; }
+        .btn-end-early:hover { background: #f44336; transform: translateY(2px); box-shadow: 0 2px 0 #b71c1c; }
+        .btn-end-early:active { transform: translateY(4px); box-shadow: none; }
+
+        .ranking-area { margin-top: 40px; background: #fff8e1; border-radius: 15px; padding: 25px; border: 2px solid #ffe082; }
+        .ranking-area h2 { color: #f57f17; margin-top: 0; }
+        .ranking-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+        .ranking-table th, .ranking-table td { padding: 12px; text-align: center; border-bottom: 1px solid #f5f5f5; font-size: 18px; }
+        .ranking-table th { background: #fbc02d; color: #fff; text-transform: uppercase; }
+        .ranking-table tr:nth-child(1) td { color: #d84315; font-weight: bold; font-size: 22px; }
+        
+        /* Pantallas de Teoría */
+        #theoryScreen { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        #theoryTitle { font-family: 'Times New Roman', Times, serif; font-size: 32px; font-weight: bold; border-bottom: 2px solid #ccc; padding-bottom: 15px; margin-top: 0; }
+        #theoryText { font-size: 18px; color: #444; line-height: 1.6; text-align: justify; margin-bottom: 30px; }
+        .example-header { font-family: 'Times New Roman', Times, serif; color: #0288d1; font-size: 24px; font-weight: bold; border-bottom: 4px solid #4fc3f7; display: inline-block; margin-bottom: 15px; }
+        #theoryExample { background: #fdfdfd; padding: 25px; border: 1px solid #eee; border-radius: 10px; font-size: 18px; }
+        
+        /* Instrucciones Nivel 4 */
+        #level4Intro { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 15px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.1); border-top: 8px solid #ff9800; }
+        .instruction-step { text-align: left; background: #fff3e0; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ff9800; font-size: 16px; }
+
+        /* Juego Balanza */
+        .game-area { display: none; }
+        .balance-area { position: relative; width: 100%; height: 260px; display: flex; justify-content: center; align-items: flex-end; margin-bottom: 40px; padding-bottom: 20px; }
+        .base { position: absolute; bottom: 0; width: 150px; height: 30px; background-color: #555; border-radius: 5px 5px 0 0; z-index: 2; }
+        .pillar { position: absolute; bottom: 30px; width: 20px; height: 70px; background-color: #777; clip-path: polygon(20% 0, 80% 0, 100% 100%, 0% 100%); z-index: 2; }
+        .beam { position: absolute; bottom: 100px; width: 600px; height: 12px; background-color: #666; transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 1; border-radius: 6px; }
+        .fulcrum-arrow { position: absolute; bottom: 90px; width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 30px solid #00c853; z-index: 3; }
+        
+        .pan-container { position: absolute; bottom: -60px; width: 240px; display: flex; flex-direction: column; align-items: center; transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .pan-container.left { left: -10px; }
+        .pan-container.right { right: -10px; }
+        .pan-support { width: 4px; height: 50px; background-color: #999; }
+        .pan { width: 240px; height: 20px; background-color: #bdbdbd; border-radius: 50%; border-bottom: 4px solid #757575; position: relative; display: flex; justify-content: center; align-items: flex-end; padding-bottom: 10px; gap: 5px; flex-wrap: wrap-reverse; }
+        
+        .box-x { width: 45px; height: 45px; background-color: #29b6f6; border: 2px solid #0288d1; color: black; font-size: 20px; font-weight: bold; display: flex; justify-content: center; align-items: center; }
+        .circle-num { width: 45px; height: 45px; background-color: #f5e6d3; border: 2px solid #d7ccc8; color: black; font-size: 20px; font-weight: bold; display: flex; justify-content: center; align-items: center; border-radius: 50%; }
+        .circle-num.negative { background-color: #ffcdd2; border-color: #e53935; color: #c62828; }
+        
+        .equation-box { font-size: 38px; margin: 20px 0; font-weight: bold; font-family: monospace; text-align: center; letter-spacing: 2px; }
+        .unequal { color: #d32f2f; }
+        .equal { color: #388e3c; }
+        
+        .controls-panel { background: #fff9c4; padding: 20px; border-radius: 10px; border: 2px solid #fbc02d; margin-top: 10px; text-align: center; }
+        .controls { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .op-btn { width: 50px; height: 50px; font-size: 24px; padding: 0; background-color: white; border: 2px solid #ccc; border-radius: 8px; }
+        .op-btn.selected { background-color: #bbdefb; border-color: #1976d2; }
+        input[type="number"] { width: 90px; height: 46px; font-size: 24px; text-align: center; border: 2px solid #ccc; border-radius: 8px; font-weight: bold; }
+        
+        .action-buttons { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        .btn-side { background-color: #ffb74d; color: white; width: 150px; }
+        .btn-side:hover { background-color: #ffa726; }
+        .btn-both { background-color: #81c784; color: white; font-size: 20px; width: 220px; }
+        .btn-both:hover { background-color: #66bb6a; }
+        
+        .helper-buttons { display: flex; justify-content: space-between; margin-top: 20px; }
+        .btn-reset { background-color: #e57373; color: white; font-size: 15px; }
+        .btn-hint { background-color: #ba68c8; color: white; font-size: 15px; }
+        
+        .message { font-size: 20px; font-weight: bold; color: #d32f2f; margin-top: 15px; min-height: 30px; text-align: center; }
+        .success { color: #388e3c; }
+        .hint-text { color: #8e24aa; font-weight: normal; font-size: 18px; }
+        
+        .step-container { flex-grow: 1; overflow-y: auto; padding-right: 10px; }
+        .step-list { list-style: none; padding: 0; margin: 0; font-size: 15px; }
+        .step-item { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #2196f3; padding: 18px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
+        .step-item.initial { border-left-color: #4caf50; background: #e8f5e9; }
+        .step-item.error { border-left-color: #f44336; background: #ffebee; }
+        .step-header { font-family: monospace; font-size: 20px; font-weight: bold; color: #333; margin-bottom: 12px; border-bottom: 1px dashed #ccc; padding-bottom: 8px; }
+        .step-details { font-size: 14px; color: #555; line-height: 1.6; }
+        .step-result { font-family: monospace; font-size: 18px; color: #388e3c; background: #f1f8e9; padding: 5px 10px; border-radius: 4px; display: inline-block; }
+        
+        .stats { display: flex; justify-content: space-between; font-size: 22px; font-weight: bold; margin-bottom: 15px; color: #1976d2; }
+        .hidden { display: none !important; }
+        .book-math { font-style: italic; font-family: 'Times New Roman', Times, serif; font-size: 22px; }
+        .book-text { color: #8e24aa; font-size: 18px; }
+    </style>
+</head>
+<body>
+
+<h1>Simulador de Balanzas</h1>
+<p class="subtitle">Propiedad uniforme y justificación de igualdades.</p>
+
+<!-- MENU PRINCIPAL -->
+<div id="menuScreen" class="menu-container">
+    <h2>Selecciona tu Nivel</h2>
+    <div class="name-input-container">
+        <label for="playerNameInput" style="display:block; margin-bottom:5px; color:#1976d2;">Para guardar tu puntaje en el Reto Mix:</label>
+        <input type="text" id="playerNameInput" placeholder="Nombre (Ej: Juan P)" maxlength="15" autocomplete="off">
+        <div id="nameError"></div>
+    </div>
+    <br>
+    <button class="btn-menu" onclick="prepareLevel(1)">Nivel 1 (x ± a = b)</button><br>
+    <button class="btn-menu" onclick="prepareLevel(2)">Nivel 2 (ax = b)</button><br>
+    <button class="btn-menu" onclick="prepareLevel(3)">Nivel 3 (ax ± b = c)</button><br>
+    <button class="btn-reto" onclick="showLevel4Intro()" style="margin-top: 15px;">🔥 Nivel 4 (Reto Mix - 5 Minutos)</button>
+
+    <div class="ranking-area">
+        <h2>🏆 TOP 5 MUNDIAL</h2>
+        <table class="ranking-table">
+            <thead><tr><th>Puesto</th><th>Nombre</th><th>Puntos</th></tr></thead>
+            <tbody id="rankingBody"><tr><td colspan="3" style="color:#757575;">Cargando ranking en vivo...</td></tr></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- PANTALLA TEORÍA (Libro) -->
+<div id="theoryScreen" class="hidden">
+    <h2 id="theoryTitle"></h2>
+    <p id="theoryText"></p>
+    <div class="example-header">Ejemplo</div>
+    <div id="theoryExample"></div>
+    <div style="text-align: center;">
+        <button onclick="startGame()" style="background-color: #4caf50; color: white; padding: 15px 40px; margin-top: 30px; font-size: 22px; border:none; border-radius:8px; cursor:pointer;">¡Entendido, a resolver!</button>
+        <button onclick="returnToMenu()" style="background-color: #e0e0e0; color: #333; padding: 15px 40px; margin-top: 15px; border:none; border-radius:8px; cursor:pointer;">Volver al Menú</button>
+    </div>
+</div>
+
+<!-- PANTALLA INTRO NIVEL 4 -->
+<div id="level4Intro" class="hidden">
+    <h2 style="color: #f57c00; font-size: 32px; margin-top: 0;">🔥 El Reto Mix 🔥</h2>
+    <h3 id="welcomePlayer" style="color: #333;"></h3>
+    <div class="instruction-step"><b>⏱️ Tiempo Límite:</b> Tienes 5 minutos para resolver todas las que puedas.</div>
+    <div class="instruction-step"><b>⚖️ Equilibrio:</b> Opera a ambos lados. Si desequilibras la balanza, usa el botón "Restaurar" pero perderás tiempo.</div>
+    <div class="instruction-step"><b>⭐ Puntuación:</b> 10 puntos por cada "x" despejada.</div>
+    <button onclick="prepareLevel(4)" style="background: #4caf50; color: white; font-size: 24px; padding: 15px 40px; margin-top: 20px; border:none; border-radius:8px; cursor:pointer;">¡Empezar!</button>
+    <br><button onclick="returnToMenu()" style="background: #ccc; margin-top: 15px; padding: 10px 20px; border:none; border-radius:8px; cursor:pointer;">Volver</button>
+</div>
+
+<!-- ÁREA DE JUEGO -->
+<div class="layout game-area" id="gameArea">
+    <div class="main-panel">
+        <div class="stats" id="statsBar">
+            <span id="scoreDisplay" class="hidden">Puntos: 0</span>
+            <h2 id="levelTitle" style="margin:0; font-size: 24px; color: #1976d2;">Nivel</h2>
+            <span id="timeDisplay" class="hidden">Tiempo: 05:00</span>
+        </div>
+        
+        <div class="balance-area">
+            <div class="base"></div>
+            <div class="pillar"></div>
+            <div class="fulcrum-arrow"></div>
+            <div class="beam" id="beam">
+                <div class="pan-container left" id="panLeftContainer">
+                    <div class="pan-support"></div><div class="pan" id="leftPan"></div>
+                </div>
+                <div class="pan-container right" id="panRightContainer">
+                    <div class="pan-support"></div><div class="pan" id="rightPan"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="equation-box equal" id="equationDisplay"></div>
+
+        <div class="controls-panel">
+            <div class="controls">
+                <button class="op-btn selected" id="opSub" onclick="setOp('-')">-</button>
+                <button class="op-btn" id="opAdd" onclick="setOp('+')">+</button>
+                <button class="op-btn" id="opDiv" onclick="setOp('/')">÷</button>
+                <button class="op-btn" id="opMul" onclick="setOp('*')">×</button>
+                <input type="number" id="opValue" value="1">
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn-side" id="btnLeft" onclick="applyOperation('left')">← Solo Izq.</button>
+                <button class="btn-both" id="btnBoth" onclick="applyOperation('both')">Ambos Lados</button>
+                <button class="btn-side" id="btnRight" onclick="applyOperation('right')">Solo Der. →</button>
+            </div>
+            
+            <div class="helper-buttons">
+                <button class="btn-reset" onclick="resetToInitial()">🔄 Restaurar Balanza</button>
+                <button class="btn-hint" onclick="showHint()">💡 Dame una pista</button>
+            </div>
+        </div>
+
+        <div class="message" id="message"></div>
+        <div style="text-align: center;">
+            <button id="nextBtn" class="hidden" onclick="generateEquation()" style="background-color: #2196f3; color: white; font-size: 20px; padding: 12px 24px; margin-top: 10px; border:none; border-radius:8px; cursor:pointer;">Siguiente Ecuación</button>
+            
+            <!-- BOTÓN PARA TERMINAR ANTICIPADAMENTE -->
+            <button id="endEarlyBtn" class="btn-end-early hidden" onclick="endGameEarly()">⏹️ Terminar Anticipadamente</button>
+            
+            <br><button onclick="returnToMenu()" style="margin-top: 15px; background-color: #e0e0e0; color: #333; padding: 10px 20px; border:none; border-radius:8px; cursor:pointer;">Volver al Menú</button>
+        </div>
+    </div>
+    
+    <div class="side-panel">
+        <div class="card" style="flex-grow: 1;">
+            <h3>📝 Mis pasos (Justificación)</h3>
+            <div class="step-container"><ul class="step-list" id="stepsList"></ul></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // =========================================================
+    // 1. CONFIGURACIÓN DEL RANKING GLOBAL (FIREBASE)
+    // =========================================================
+    const firebaseUrl = "https://rankingcolegio-default-rtdb.firebaseio.com"; 
+
+    async function loadRanking() {
+        let tbody = document.getElementById('rankingBody');
+        
+        try {
+            let url = firebaseUrl + (firebaseUrl.endsWith('/') ? '' : '/') + 'ranking.json';
+            let res = await fetch(url);
+            let data = await res.json();
+            
+            tbody.innerHTML = '';
+            
+            if (!data) {
+                tbody.innerHTML = '<tr><td colspan="3" style="color:#757575;">Aún no hay puntajes. ¡Sé el primero!</td></tr>';
+                return;
+            }
+
+            let entries = Object.values(data);
+            entries.sort((a, b) => b.score - a.score);
+            let top5 = entries.slice(0, 5);
+            
+            top5.forEach((entry, index) => {
+                let medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : index + 1));
+                tbody.innerHTML += `<tr><td>${medal}</td><td>${entry.name}</td><td>${entry.score} pts</td></tr>`;
+            });
+
+        } catch (error) {
+            tbody.innerHTML = '<tr><td colspan="3" style="color:#f44336;">Error de red. Revisa tu conexión.</td></tr>';
+            console.error(error);
+        }
+    }
+
+    async function checkAndSaveScore(finalScore) {
+        let msg = document.getElementById('message');
+        msg.innerText = `Enviando tu puntaje a la nube... ☁️`;
+        msg.style.color = "#f57c00";
+
+        try {
+            let url = firebaseUrl + (firebaseUrl.endsWith('/') ? '' : '/') + 'ranking.json';
+            
+            await fetch(url, {
+                method: 'POST',
+                body: JSON.stringify({ name: playerName, score: finalScore }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            setTimeout(async () => { 
+                await loadRanking(); 
+                msg.innerText = `¡Puntaje guardado con éxito! Lograste ${finalScore} puntos.`;
+                msg.style.color = "#388e3c";
+            }, 1000);
+            
+        } catch (error) {
+            msg.innerText = `Lograste ${finalScore} puntos. Hubo un error de red al subirlo.`;
+            msg.style.color = "#d32f2f";
+        }
+    }
+    
+    loadRanking();
+
+    // =========================================================
+    // 2. TEORÍA DEL LIBRO
+    // =========================================================
+    const bookTheories = {
+        1: {
+            title: "Solución de ecuaciones de la forma x ± a = b",
+            text: "Para resolver ecuaciones de la forma <i>x ± a = b</i> aplicando la propiedad uniforme de la igualdad, se debe sumar en ambos miembros de la ecuación el opuesto del término independiente <i>a</i>.",
+            example: `
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px; align-items: center;">
+                    <div style="text-align: right;" class="book-math">x - 3 = 7</div><div class="book-text">Ecuación dada.</div>
+                    <div style="text-align: right;" class="book-math">x - 3 + 3 = 7 + 3</div><div class="book-text">Se suma 3 en los dos miembros de la ecuación.</div>
+                    <div style="text-align: right;" class="book-math">x + 0 = 10</div><div class="book-text">Se realizan las operaciones indicadas.</div>
+                    <div style="text-align: right;" class="book-math">x = 10</div><div></div>
+                </div>`
+        },
+        2: {
+            title: "Solución de ecuaciones de la forma ax = b",
+            text: "Para resolver ecuaciones de la forma <i>ax = b</i>, con <i>a ≠ 0</i> se aplica la propiedad uniforme de las igualdades, dividiendo cada miembro de la ecuación entre el coeficiente <i>a</i> de la incógnita.",
+            example: `
+                <p style="margin-top:0; font-weight:bold;">Resolver la ecuación 2x = -18.</p>
+                <div style="display: grid; grid-template-columns: 120px 1fr; gap: 15px; align-items: center;">
+                    <div style="text-align: right;" class="book-math">2x = -18</div><div class="book-text">Ecuación dada.</div>
+                    <div style="text-align: right;" class="book-math">
+                        <div style="display:inline-block; text-align:center;">2x<div style="border-top:1px solid #333; margin:2px 0;"></div>2</div> = 
+                        <div style="display:inline-block; text-align:center;">-18<div style="border-top:1px solid #333; margin:2px 0;"></div>2</div>
+                    </div><div class="book-text">Se dividen ambos lados de la ecuación entre 2.</div>
+                    <div style="text-align: right;" class="book-math">1 · x = -9</div><div class="book-text">Se realizan las divisiones indicadas.</div>
+                    <div style="text-align: right;" class="book-math">x = -9</div><div class="book-text">Se aplica la propiedad del elemento neutro respecto a la multiplicación.</div>
+                </div>`
+        },
+        3: {
+            title: "Solución de ecuaciones ax ± b = c",
+            text: "En las ecuaciones de la forma <i>ax ± b = c</i>, con <i>a</i>, <i>b</i>, <i>c</i> números enteros y <i>a ≠ 0</i>, se siguen los pasos que se escriben a continuación:<br><br><b>Primero</b>, se aplica la propiedad uniforme de la igualdad y se suma el opuesto aditivo de la <i>b</i> a los dos miembros de la ecuación.<br><br><b>Segundo</b>, se aplica la propiedad uniforme de la igualdad y se dividen los dos miembros de la ecuación entre el coeficiente de la incógnita.",
+            example: `
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px; align-items: center;">
+                    <div style="text-align: right;" class="book-math">4n + 2 = 10</div><div class="book-text">Ecuación dada.</div>
+                    <div style="text-align: right;" class="book-math">4n + 2 - 2 = 10 - 2</div><div class="book-text">Se resta 2 en ambos miembros de la ecuación.</div>
+                    <div style="text-align: right;" class="book-math">4n = 8</div><div class="book-text">Se aplica la propiedad del elemento neutro respecto a la adición.</div>
+                    <div style="text-align: right;" class="book-math">
+                        <div style="display:inline-block; text-align:center;">4n<div style="border-top:1px solid #333; margin:2px 0;"></div>4</div> = 
+                        <div style="display:inline-block; text-align:center;">8<div style="border-top:1px solid #333; margin:2px 0;"></div>4</div>
+                    </div><div class="book-text">Se divide entre 4 en ambos miembros de la ecuación.</div>
+                    <div style="text-align: right;" class="book-math">n = 2</div><div class="book-text">Se realizan las operaciones respectivas.</div>
+                </div>`
+        }
+    };
+
+    // =========================================================
+    // 3. LOGICA DEL JUEGO
+    // =========================================================
+    let currentLevel = 1; let score = 0; let timeLeft = 300; let timerInterval;
+    let isMixMode = false; let currentOp = '-'; let initialEq = null;
+    let eq = { leftX: 0, leftNum: 0, leftXFirst: true, rightX: 0, rightNum: 0, rightXFirst: true };
+    let actualX = 0; let playerName = "";
+
+    const forbiddenWords = ["bobo", "tonto", "idiota", "estupido", "mierda", "puta", "puto", "culo", "cabron", "pendejo", "verga", "pito", "zorra", "perra", "marica", "imbecil"];
+
+    function isValidName(name) {
+        let n = name.toLowerCase().replace(/\s+/g, '');
+        for (let word of forbiddenWords) if (n.includes(word)) return false;
+        return true;
+    }
+
+    function showLevel4Intro() {
+        let inputName = document.getElementById('playerNameInput').value.trim();
+        let errorDiv = document.getElementById('nameError');
+        if(inputName === "") { errorDiv.innerText = "⚠️ Por favor, ingresa tu nombre."; errorDiv.style.display = "block"; return; }
+        if(!isValidName(inputName)) { errorDiv.innerText = "🛑 Nombre inapropiado."; errorDiv.style.display = "block"; return; }
+        errorDiv.style.display = "none"; playerName = inputName;
+        
+        document.getElementById('menuScreen').style.display = 'none';
+        document.getElementById('welcomePlayer').innerText = `¡Preparado, ${playerName}!`;
+        document.getElementById('level4Intro').classList.remove('hidden');
+    }
+
+    function prepareLevel(level) {
+        currentLevel = level;
+        document.getElementById('menuScreen').style.display = 'none';
+        document.getElementById('level4Intro').classList.add('hidden');
+        
+        if (level === 1 || level === 2 || level === 3) {
+            document.getElementById('theoryTitle').innerHTML = bookTheories[level].title;
+            document.getElementById('theoryText').innerHTML = bookTheories[level].text;
+            document.getElementById('theoryExample').innerHTML = bookTheories[level].example;
+            document.getElementById('theoryScreen').classList.remove('hidden');
+        } else {
+            startGame();
+        }
+    }
+
+    function startGame() {
+        document.getElementById('theoryScreen').classList.add('hidden');
+        document.getElementById('gameArea').style.display = 'flex';
+        document.getElementById('message').innerText = '';
+        document.getElementById('nextBtn').classList.add('hidden');
+        enableButtons(true);
+        
+        isMixMode = (currentLevel === 4);
+        
+        if (isMixMode) {
+            score = 0; timeLeft = 300;
+            document.getElementById('scoreDisplay').classList.remove('hidden');
+            document.getElementById('timeDisplay').classList.remove('hidden');
+            document.getElementById('levelTitle').innerText = "Reto Mix (5 Min)";
+            document.getElementById('endEarlyBtn').classList.remove('hidden'); 
+            updateStats();
+            clearInterval(timerInterval); timerInterval = setInterval(timerTick, 1000);
+        } else {
+            document.getElementById('scoreDisplay').classList.add('hidden');
+            document.getElementById('timeDisplay').classList.add('hidden');
+            document.getElementById('endEarlyBtn').classList.add('hidden'); 
+            document.getElementById('levelTitle').innerText = "Nivel " + currentLevel;
+            clearInterval(timerInterval);
+        }
+        generateEquation(); setOp('-');
+    }
+
+    function returnToMenu() {
+        document.getElementById('gameArea').style.display = 'none';
+        document.getElementById('theoryScreen').classList.add('hidden');
+        document.getElementById('level4Intro').classList.add('hidden');
+        document.getElementById('menuScreen').style.display = 'block';
+        clearInterval(timerInterval);
+    }
+
+    function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+    function generateEquation() {
+        document.getElementById('message').innerText = '';
+        document.getElementById('message').className = 'message';
+        document.getElementById('nextBtn').classList.add('hidden');
+        document.getElementById('stepsList').innerHTML = '';
+        enableButtons(true);
+        
+        let type = currentLevel; if (isMixMode) type = randInt(1, 3);
+        actualX = randInt(-10, 10); if(actualX === 0) actualX = 3; 
+
+        eq.leftXFirst = Math.random() > 0.5; eq.rightXFirst = Math.random() > 0.5;
+        
+        if (type === 1) { 
+            let a = randInt(-15, 15); if(a === 0) a = 7;
+            eq = { leftX: 1, leftNum: a, leftXFirst: eq.leftXFirst, rightX: 0, rightNum: actualX + a, rightXFirst: true };
+        } else if (type === 2) { 
+            let a = randInt(2, 5);
+            eq = { leftX: a, leftNum: 0, leftXFirst: true, rightX: 0, rightNum: a * actualX, rightXFirst: true };
+        } else if (type === 3) { 
+            let a = randInt(2, 4); let b = randInt(-12, 12); if(b === 0) b = -5;
+            eq = { leftX: a, leftNum: b, leftXFirst: eq.leftXFirst, rightX: 0, rightNum: (a * actualX) + b, rightXFirst: true };
+        }
+        initialEq = JSON.parse(JSON.stringify(eq)); 
+        updateBalanceAndUI(); addInitialStep();
+    }
+
+    function getEquationString(e) { return `${formatSide(e.leftX, e.leftNum, e.leftXFirst)} = ${formatSide(e.rightX, e.rightNum, e.rightXFirst)}`; }
+
+    function formatSide(xCoeff, num, xFirst) {
+        let xTerm = xCoeff !== 0 ? (xCoeff === 1 ? "x" : (xCoeff === -1 ? "-x" : xCoeff + "x")) : "";
+        let numTerm = num !== 0 ? num.toString() : "";
+        if (xCoeff === 0 && num === 0) return "0";
+        if (xCoeff === 0) return numTerm;
+        if (num === 0) return xTerm;
+        if (xFirst) return `${xTerm} ${num > 0 ? '+ ' + num : '- ' + Math.abs(num)}`;
+        return `${numTerm} ${xCoeff > 0 ? '+ ' + xTerm : '- ' + xTerm.replace('-','')}`;
+    }
+
+    function updateBalanceAndUI() {
+        let weightL = (eq.leftX * actualX) + eq.leftNum; let weightR = (eq.rightX * actualX) + eq.rightNum;
+        let angle = 0; let sign = "="; let eqClass = "equal";
+        if (weightL > weightR) { angle = -12; sign = ">"; eqClass = "unequal"; } 
+        else if (weightR > weightL) { angle = 12; sign = "<"; eqClass = "unequal"; }
+
+        document.getElementById('beam').style.transform = `rotate(${angle}deg)`;
+        document.getElementById('panLeftContainer').style.transform = `rotate(${-angle}deg)`;
+        document.getElementById('panRightContainer').style.transform = `rotate(${-angle}deg)`;
+
+        let display = document.getElementById('equationDisplay');
+        display.innerText = `${formatSide(eq.leftX, eq.leftNum, eq.leftXFirst)} ${sign} ${formatSide(eq.rightX, eq.rightNum, eq.rightXFirst)}`;
+        display.className = `equation-box ${eqClass}`;
+
+        renderPan('leftPan', eq.leftX, eq.leftNum); renderPan('rightPan', eq.rightX, eq.rightNum);
+    }
+
+    function renderPan(panId, xCount, num) {
+        const pan = document.getElementById(panId); pan.innerHTML = '';
+        for (let i = 0; i < Math.abs(xCount); i++) {
+            let box = document.createElement('div'); box.className = 'box-x'; box.innerText = xCount > 0 ? 'x' : '-x';
+            if (xCount < 0) box.style.backgroundColor = '#ffcdd2'; pan.appendChild(box);
+        }
+        if (num !== 0) {
+            let circle = document.createElement('div'); circle.className = 'circle-num' + (num < 0 ? ' negative' : ''); circle.innerText = num;
+            pan.appendChild(circle);
+        }
+    }
+
+    function setOp(op) {
+        currentOp = op; document.querySelectorAll('.op-btn').forEach(btn => btn.classList.remove('selected'));
+        if(op === '+') document.getElementById('opAdd').classList.add('selected');
+        if(op === '-') document.getElementById('opSub').classList.add('selected');
+        if(op === '*') document.getElementById('opMul').classList.add('selected');
+        if(op === '/') document.getElementById('opDiv').classList.add('selected');
+    }
+
+    function applyOperation(target) {
+        let val = parseInt(document.getElementById('opValue').value);
+        if (isNaN(val)) { showMessage("Ingresa un número válido."); return; }
+
+        let checkL = (target === 'left' || target === 'both'); let checkR = (target === 'right' || target === 'both');
+        if (currentOp === '/') {
+            if (val === 0) { showMessage("Indefinido matemáticamente."); return; }
+            if ((checkL && ((eq.leftX % val !== 0) || (eq.leftNum % val !== 0))) || (checkR && ((eq.rightX % val !== 0) || (eq.rightNum % val !== 0)))) {
+                showMessage("Genera fracciones racionales."); return;
+            }
+        }
+        document.getElementById('message').innerText = ''; let oldEq = JSON.parse(JSON.stringify(eq));
+
+        if (checkL) {
+            if (currentOp === '+') eq.leftNum += val; if (currentOp === '-') eq.leftNum -= val;
+            if (currentOp === '*') { eq.leftX *= val; eq.leftNum *= val; } if (currentOp === '/') { eq.leftX /= val; eq.leftNum /= val; }
+        }
+        if (checkR) {
+            if (currentOp === '+') eq.rightNum += val; if (currentOp === '-') eq.rightNum -= val;
+            if (currentOp === '*') { eq.rightX *= val; eq.rightNum *= val; } if (currentOp === '/') { eq.rightX /= val; eq.rightNum /= val; }
+        }
+        updateBalanceAndUI(); addStepJustification(currentOp, val, target, oldEq, eq); checkWin();
+    }
+
+    function resetToInitial() {
+        if (!initialEq) return; eq = JSON.parse(JSON.stringify(initialEq));
+        updateBalanceAndUI(); enableButtons(true); document.getElementById('message').innerText = ''; document.getElementById('nextBtn').classList.add('hidden');
+        let list = document.getElementById('stepsList'); let li = document.createElement('li'); li.className = `step-item initial`;
+        li.innerHTML = `<div class="step-header">Balanza Restaurada</div><div class="step-result">${getEquationString(eq)}</div>`;
+        list.appendChild(li); scrollToBottom();
+    }
+
+    function showHint() {
+        let weightL = (eq.leftX * actualX) + eq.leftNum; let weightR = (eq.rightX * actualX) + eq.rightNum; let hint = "";
+        if (weightL !== weightR) hint = "Igualdad rota. Usa 'Restaurar Balanza'.";
+        else if (eq.leftNum !== 0) hint = `Intenta ${eq.leftNum > 0 ? "restar" : "sumar"} ${Math.abs(eq.leftNum)} a AMBOS lados.`;
+        else if (Math.abs(eq.leftX) > 1) hint = `Divide entre ${eq.leftX} a AMBOS lados.`;
+        else if (eq.leftX === -1) hint = `Tienes '-x'. Divide entre -1 a ambos lados.`;
+        else hint = "¡Casi listo!";
+        showMessage("💡 " + hint, false, true);
+    }
+
+    function addInitialStep() {
+        let list = document.getElementById('stepsList'); let li = document.createElement('li'); li.className = `step-item initial`;
+        li.innerHTML = `<div class="step-header">Ecuación Inicial</div><div class="step-result">${getEquationString(eq)}</div>`;
+        list.appendChild(li);
+    }
+
+    function addStepJustification(opStr, val, target, oldEq, newEq) {
+        let list = document.getElementById('stepsList'); let li = document.createElement('li');
+        li.className = target === 'both' ? 'step-item' : 'step-item error';
+
+        if (target !== 'both') {
+            li.innerHTML = `<div class="step-header" style="color: #d32f2f;">⚠️ Error: Operación en un solo lado</div>
+                <div class="step-details">Has modificado solo un lado. Esto rompe la propiedad uniforme y desequilibra la balanza matemática.</div>
+                <div class="step-result" style="background:#ffebee; color:#d32f2f; margin-top:10px;">${getEquationString(newEq)}</div>`;
+        } else {
+            let isDivMul = (opStr === '*' || opStr === '/');
+            let actionText = opStr === '+' ? `Sumamos ${val}` : opStr === '-' ? `Restamos ${val}` : opStr === '*' ? `Multiplicamos por ${val}` : `Dividimos entre ${val}`;
+            let html = `<div class="step-header"><code>${getEquationString(oldEq)} &nbsp; | &nbsp; ${opStr} ${val}</code></div>
+                <div class="step-details"><div style="margin-bottom: 8px;"><b style="color: #1976d2;">• Propiedad Uniforme de las igualdades:</b> ${actionText} a ambos miembros de la ecuación.</div>`;
+
+            if (!isDivMul) {
+                let c2 = opStr === '+' ? val : -val;
+                let cancelacion = `(${oldEq.leftNum} ${c2 >= 0 ? '+ ' + c2 : '- ' + Math.abs(c2)})`;
+                html += `<div style="margin-bottom: 8px;"><b style="color: #1976d2;">• Asociación e Inverso Aditivo:</b> Asociamos términos. Acá sería <code>${cancelacion}</code>, que da 0 por el inverso aditivo.</div>`;
+                html += `<div style="margin-bottom: 8px;"><b style="color: #1976d2;">• Elemento Neutro de la suma:</b> El 0 sumado da el mismo número.</div>`;
+                let opSuffix = c2 >= 0 ? `+ ${c2}` : `- ${Math.abs(c2)}`;
+                let left1 = `${formatSide(oldEq.leftX, oldEq.leftNum, oldEq.leftXFirst)} ${opSuffix}`;
+                let right1 = `${formatSide(oldEq.rightX, oldEq.rightNum, oldEq.rightXFirst)} ${opSuffix}`;
+                
+                function buildSide(xCoeff, num, xFirst) {
+                    let xTerm = xCoeff !== 0 ? (xCoeff === 1 ? "x" : (xCoeff === -1 ? "-x" : xCoeff + "x")) : "";
+                    let assocStr = `(${num} ${c2 >= 0 ? '+ ' + c2 : '- ' + Math.abs(c2)})`;
+                    let zeroVal = num + c2;
+                    if (xCoeff === 0) return { assoc: assocStr, zero: zeroVal.toString() };
+                    if (xFirst) return { assoc: `${xTerm} + ${assocStr}`, zero: `${xTerm} ${zeroVal >= 0 ? '+ ' + zeroVal : '- ' + Math.abs(zeroVal)}` };
+                    return { assoc: `${assocStr} ${xCoeff > 0 ? '+ ' + xTerm : '- ' + xTerm.replace('-','')}`, zero: `${zeroVal} ${xCoeff > 0 ? '+ ' + xTerm : '- ' + xTerm.replace('-','')}` };
+                }
+                let lP = buildSide(oldEq.leftX, oldEq.leftNum, oldEq.leftXFirst); let rP = buildSide(oldEq.rightX, oldEq.rightNum, oldEq.rightXFirst);
+
+                html += `<div style="background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px; font-family: monospace; font-size: 16px; margin-top: 15px; padding: 15px;">
+                        <div style="margin-bottom: 8px; color: #424242;">${left1} = ${right1}</div>
+                        <div style="margin-bottom: 8px; color: #5e35b1;">${lP.assoc} = ${rP.assoc}</div>
+                        <div style="margin-bottom: 12px; color: #e65100;">${lP.zero} = ${rP.zero}</div>
+                        <div style="background: #e8f5e9; color: #2e7d32; font-weight: bold; padding: 8px 15px; border-radius: 5px; display: inline-block;">➔ &nbsp; ${getEquationString(newEq)}</div>
+                    </div>`;
+            } else {
+                html += `<div style="margin-bottom: 8px;"><b style="color: #1976d2;">• Inverso Multiplicativo:</b> Se dividió (o multiplicó) entre ${val}. Al dividir un número por sí mismo da 1.</div>`;
+                html += `<div style="margin-bottom: 8px;"><b style="color: #1976d2;">• Elemento Idéntico:</b> El 1 multiplicado por la incógnita da el mismo número.</div>`;
+                let sign = opStr === '*' ? '×' : '÷';
+                let left1 = oldEq.leftNum === 0 ? `${formatSide(oldEq.leftX, oldEq.leftNum, oldEq.leftXFirst)} ${sign} ${val}` : `(${formatSide(oldEq.leftX, oldEq.leftNum, oldEq.leftXFirst)}) ${sign} ${val}`;
+                let right1 = oldEq.rightX === 0 ? `${formatSide(oldEq.rightX, oldEq.rightNum, oldEq.rightXFirst)} ${sign} ${val}` : `(${formatSide(oldEq.rightX, oldEq.rightNum, oldEq.rightXFirst)}) ${sign} ${val}`;
+                html += `<div style="background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px; font-family: monospace; font-size: 16px; margin-top: 15px; padding: 15px;">
+                        <div style="margin-bottom: 12px; color: #424242;">${left1} = ${right1}</div>
+                        <div style="background: #e8f5e9; color: #2e7d32; font-weight: bold; padding: 8px 15px; border-radius: 5px; display: inline-block;">➔ &nbsp; ${getEquationString(newEq)}</div>
+                    </div>`;
+            }
+            html += `</div>`; li.innerHTML = html;
+        }
+        list.appendChild(li); scrollToBottom();
+    }
+
+    function scrollToBottom() { let c = document.querySelector('.step-container'); c.scrollTop = c.scrollHeight; }
+    function showMessage(text, isSuccess = false, isHint = false) {
+        let m = document.getElementById('message'); m.innerText = text;
+        m.className = 'message ' + (isSuccess ? 'success' : (isHint ? 'hint-text' : ''));
+    }
+    function enableButtons(enable) {
+        document.getElementById('btnLeft').disabled = !enable; document.getElementById('btnRight').disabled = !enable; document.getElementById('btnBoth').disabled = !enable;
+    }
+
+    function checkWin() {
+        let weightL = (eq.leftX * actualX) + eq.leftNum; let weightR = (eq.rightX * actualX) + eq.rightNum;
+        if (eq.leftX === 1 && eq.leftNum === 0 && eq.rightX === 0 && weightL === weightR) {
+            showMessage("¡Excelente! Has encontrado el valor de x.", true);
+            document.getElementById('nextBtn').classList.remove('hidden'); enableButtons(false);
+            let list = document.getElementById('stepsList'); let li = document.createElement('li'); li.className = `step-item initial`;
+            li.innerHTML = `<div class="step-header">¡Solución Encontrada!</div><div class="step-result" style="font-size: 24px;">x = ${eq.rightNum}</div>`;
+            list.appendChild(li); scrollToBottom();
+            if (isMixMode) { score += 10; updateStats(); setTimeout(generateEquation, 3000); }
+        } else if (weightL !== weightR) {
+            showMessage("¡La igualdad se ha roto! La balanza está desequilibrada.");
+        }
+    }
+
+    function timerTick() {
+        if (timeLeft > 0) { timeLeft--; updateStats(); } 
+        else { clearInterval(timerInterval); endGameEarly(); }
+    }
+
+    function endGameEarly() {
+        clearInterval(timerInterval);
+        
+        document.getElementById('gameArea').innerHTML = `
+            <div style="padding:40px; text-align:center; width:100%;">
+                <h2 style="color:#d32f2f; font-size:36px;">¡Reto Terminado!</h2>
+                <p style="font-size:30px; color:#1976d2; font-weight:bold;">Puntuación Final: ${score}</p>
+                <div id="message" style="font-size:22px; font-weight:bold; color:#f57c00; margin-top:20px; min-height:40px;"></div>
+                <button onclick="location.reload()" style="font-size:20px; padding: 15px 30px; margin-top:20px; background-color:#e0e0e0; border:none; border-radius:8px; cursor:pointer;">Volver al Menú</button>
+            </div>`;
+            
+        if (isMixMode) {
+            setTimeout(() => checkAndSaveScore(score), 500);
+        }
+    }
+
+    function updateStats() {
+        document.getElementById('scoreDisplay').innerText = `Puntos: ${score}`;
+        let m = Math.floor(timeLeft / 60); let s = timeLeft % 60;
+        document.getElementById('timeDisplay').innerText = `Tiempo: 0${m}:${s < 10 ? '0'+s : s}`;
+    }
+</script>
+</body>
+</html>
